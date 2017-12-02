@@ -1,0 +1,230 @@
+---
+title: "GaryFH - 5th Week Project - Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE, warning=FALSE}
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `brfss2013`. Delete this note when before you submit 
+your work. 
+
+```{r load-data, message = FALSE, warning=FALSE}
+
+
+#load("C:/Users/GaryFH/Dropbox/Rstudio/R data files/Duke introduction to statistics with R/DukeCourseProject1/_384b2d9eda4b29131fb681b243a7767d_brfss2013.RData")
+#class(brfss2013)
+#df1<-tbl_df(brfss2013)
+#saveRDS(df1,"df1")
+df1<-readRDS("df1")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+###The following quote is from the CDC website (https://www.cdc.gov/brfss/): 
+####"The Behavioral Risk Factor Surveillance System (BRFSS) is the nation's premier system of health-related telephone surveys that collect state data about U.S. residents regarding their health-related risk behaviors, chronic health conditions, and use of preventive services. Established in 1984 with 15 states, BRFSS now collects data in all 50 states as well as the District of Columbia and three U.S. territories. BRFSS completes more than 400,000 adult interviews each year, making it the largest continuously conducted health survey system in the world."
+
+###It appears that the purpose of this project is to gather data to be used as a basis for developing methods to promote health improving activities/live styles.
+
+* * *
+
+## Part 2: Research questions
+
+###**Research quesion 1:**
+
+####I will research the relationship between exercise and perceived mental health
+
+####Variables (exeroft1,exerhmm1,exeroft2,exerhmm2,strength) will be combined into a single variable called "exercise" - this is the predictor variable
+
+####Variable "menthlth"(Number Of Days Mental Health Not Good) will be the response variable
+
+####The research question will be "Is there enough evidence to show a casual relationship between exercise(predictor) and depression(response)". 
+
+
+###**Research quesion 2:**
+
+####I will research if the number of days a person feels "Full Of Energy" is influenced by exercise, sleep and diet.
+
+####Variable qlhlth2(How Many Days Full Of Energy In Past 30 Days) - this will be the response variable.
+
+####Variables (fruit1,fvgreen,fvorang,vegetab1) will be combined in to a single variable called "diet" - this is the first predictor variable
+
+####Variables (exeroft1,exerhmm1,exeroft2,exerhmm2,strength) will be combined into a single variable called "exercise" - this is the second predictor variable
+
+####Variable  sleptim1 is the third predictor variable
+ 
+####The research question will be "Is there enough evidence to show a correlation relationship between any/all of the above predictor variables and which variable is the strongest predictor". 
+
+###**Research quesion 3:**
+
+####I will look at the relationship between How Many Days Hard To Do Usual Activities In Past 30 Days(variable "painact2") and both alcohol and sugar drink consumption.
+
+#### Two variables (ssbsugar: How Often Do You Drink Regular Soda Or Pop? &  ssbfrut2: How Often Did You Drink Sugar-Sweetened Drinks?) will be combined to make a sugar drink usage variable
+
+#### The following four variables will be combined to make a alcohol usage variable  (alcday5: Days In Past 30 Had Alcoholic Beverage,  avedrnk2: Avg Alcoholic Drinks Per Day In Past 30, drnk3ge5: Binge Drinking, maxdrnks: Most Drinks On Single Occasion Past 30 Days)
+
+
+####The research question will be "Is there a correlation between having a bad day(Hard To Do Usual Activities) and consuming sugar drinks and/or alcoholic drinks.
+
+######Set the significance level, α, the probability of making a Type I error to be small — 0.01, 0.05, or 0.10. Compare the P-value to α. If the P-value is less than (or equal to) α, reject the null hypothesis in favor of the alternative hypothesis. If the P-value is greater than α, do not reject the null hypothesis.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+
+###**Research quesion 1:**
+#### "Is there enough evidence to show a casual relationship between exercise(predictor) and depression(response)"
+
+
+####Select only needed variables
+```{r message = FALSE, warning=FALSE}
+
+
+##Select only needed variables
+
+dfrq1<-select(df1,menthlth,exeroft1,exerhmm1,exeroft2,exerhmm2,strength)
+
+##Since all exercise variables are integers you can add them together to create an exercise number - the higher the number the more overall exercise
+
+dfrq1b<-mutate(dfrq1,exercise=(exeroft1+exerhmm1+exeroft2+exerhmm2+strength),mental_health=menthlth)
+dfrq1bb<-select(dfrq1b,mental_health,exercise)
+dfrq1c<-dfrq1bb
+dfrq1c<-drop_na(dfrq1c)
+
+##Group by number of days mental health is not good
+
+aaa<-group_by(dfrq1c,mental_health)
+
+##average excercise level per grouped bad mental health days
+
+bbb<-summarise(aaa,avg=mean(exercise))
+#plot(x=bbb$avg,y=bbb$mental_health)
+g1<- ggplot()+
+        geom_point(aes(x=bbb$avg,y=bbb$mental_health),color="red",alpha=.6)+
+        geom_smooth(aes(x=bbb$avg,y=bbb$mental_health),method="lm",color="dark red",se=F)+labs(x="Avg level of exercise",y="Number of bad mental health days per month")+labs(title="Impact of exercise level on perceived mental health")
+g1
+
+fit<-lm(mental_health~.,bbb)
+summary(fit)
+
+```
+###Conclusion for **Research quesion 1:**
+####The data indicates a correlation between exercise and the number of days an individual reports poor mental health.  The correlation is counter intuitive to me since the more a person exercises the more poor mental health days they report.   The data used included the entire data base.  The data was collected as part of an experiment and the data was considered "random".  The low p-value causes us to reject the "null hypothesis" thus indicating a correlation between perceived mental health by the level of exercise.   The low Adjusted R-squared(0.2208) would indicate a relatively weak casual relationship and further investigations may uncover confounding variables (such as the potential that the more people exercise the more likely they would be aware of and report health issues - such as mental health).
+
+
+
+
+###**Research quesion 2:**
+####I will research if the number of days a person feels "Full Of Energy" is influenced by exercise, sleep and diet.
+
+```{r message = FALSE, warning=FALSE}
+
+
+##Select only needed variables
+
+
+dfrq2<-select(df1,qlhlth2,fruit1,fvgreen,fvorang,vegetab1,sleptim1,exeroft1,exerhmm1,exeroft2,exerhmm2,strength)
+
+##Since all exercise variables are integers you can add them together to create an exercise number - the higher the number the more overall exercise
+
+dfrq2b<-mutate(dfrq2,exercise=(exeroft1+exerhmm1+exeroft2+exerhmm2+strength),diet=(fruit1+fvgreen+fvorang+vegetab1),full_energy=qlhlth2)
+dfrq2bb<-select(dfrq2b,full_energy,exercise,diet,sleptim1)
+dfrq2c<-dfrq2bb
+dfrq2c<-drop_na(dfrq2c)
+
+dfrq2d<-group_by(dfrq2c,full_energy)
+dfrq2e<-summarise(dfrq2d,avg_exercise=mean(exercise),avg_diet=mean(diet),avg_sleep=mean(sleptim1))
+
+g2<- ggplot(data = dfrq2e,aes(x=avg_diet,y=full_energy))+
+        geom_point()+
+        geom_smooth(aes(x=avg_diet,y=full_energy),method="lm",color="blue",se=F)+labs(x="Avg diet score - higher is better",y="Number of FULL ENERGY days per month")+labs(title="Impact of diet on perceived FULL ENERGY days")
+g2
+
+g3<- ggplot(data = dfrq2e,aes(x=avg_exercise,y=full_energy))+
+        geom_point()+
+        geom_smooth(aes(x=avg_exercise,y=full_energy),method="lm",color="green",se=F)+labs(x="Avg level of exercise",y="Number of FULL ENERGY days per month")+labs(title="Impact of exercise  on perceived FULL ENERGY days")
+g3
+
+g4<- ggplot(data = dfrq2e,aes(x=avg_sleep,y=full_energy))+
+        geom_point()+
+        geom_smooth(aes(x=avg_sleep,y=full_energy),method="lm",color="orange",se=F)+labs(x="Avg level of sleep",y="Number of FULL ENERGY days per month")+labs(title="Impact of sleep time on perceived FULL ENERGY days")
+g4
+
+fit2<-lm(full_energy~avg_exercise,dfrq2e)
+fit3<-lm(full_energy~avg_diet,dfrq2e)
+fit4<-lm(full_energy~avg_sleep,dfrq2e)
+
+summary(fit2)
+summary(fit3)
+summary(fit4)
+
+
+```
+
+
+###Conclusion for **Research quesion 2**:
+The data indicates a minimal correlation (Note that the p-values were relatively high and the Adjusted R values relatively low) between exercise and sleep and the number of perceived days FULL OF ENERGY.   The data indicates a strong correlation between diet and the number of perceived days FULL OF ENERGY.  Note that the p-value(0.007506) is relatively low which suggests that we should reject the “null hypothesis” thus indicating a correlation.  The low Adjusted R-squared(0.3295) would indicate a relatively weak casual relationship and further investigations may uncover confounding variables (such as the potential the possible placebo effect that people who think they eat well would also report having more energy).
+
+
+
+###**Research quesion 3:**
+####I will look at the relationship between How Many Days Hard To Do Usual Activities In Past 30 Days(variable painact2) and both alcohol and sugar drink consumption.
+
+```{r message = FALSE, warning=FALSE}
+##Select only needed variables
+
+
+dfrq3<-select(df1,painact2,ssbsugar,ssbfrut2,alcday5,avedrnk2,drnk3ge5,maxdrnks)
+
+
+dfrq3b<-mutate(dfrq3,sugardrink_usage=(ssbsugar+ssbfrut2),alcohol_usage=(alcday5+(5*avedrnk2)+(5*drnk3ge5)+(5*maxdrnks)),hard_to_work_days=painact2)
+dfrq3bb<-select(dfrq3b,hard_to_work_days,sugardrink_usage)
+dfrq3c<-dfrq3bb
+dfrq3c<-drop_na(dfrq3c)
+dfrq3d<-select(dfrq3b,hard_to_work_days,alcohol_usage)
+dfrq3d<-drop_na(dfrq3d)
+g6<- ggplot(data = dfrq3c,aes(x=sugardrink_usage,y=hard_to_work_days))+
+        geom_point()+
+        geom_smooth(aes(x=sugardrink_usage,y=hard_to_work_days),method="lm",color="magenta",se=F)+labs(x="Sugar Drink consumption level",y="Number of HARD TO WORK DAYS per month")+labs(title="Impact of sugar drinks on the number of HARD TO WORK DAYS per month")
+g6
+
+g7<- ggplot(data = dfrq3d,aes(x=alcohol_usage,y=hard_to_work_days))+
+        geom_point()+
+        geom_smooth(aes(alcohol_usage,y=hard_to_work_days),method="lm",color="orange",se=F)+labs(x="Alcohol consumption level",y="Number of HARD TO WORK DAYS per month")+labs(title="Impact of sugar drinks on the number of HARD TO WORK DAYS per month")
+g7
+
+
+fit5<-lm(hard_to_work_days~sugardrink_usage,dfrq3c)
+fit6<-lm(hard_to_work_days~alcohol_usage,dfrq3d)
+
+summary(fit5)
+summary(fit6)
+
+
+
+```
+###Conclusion for **Research quesion 4**
+####The data shows no signficant correlation between either sugar drink consumption or alcohol consumption (both have high p-values and low adjusted R values) and having a bad day(Hard To Do Usual Activities).
+
+
+
