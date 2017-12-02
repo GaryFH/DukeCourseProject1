@@ -1,7 +1,7 @@
 ---
 title: "GaryFH - 5th Week Project - Exploring the BRFSS data"
 output: 
-  html_document: 
+  md_document: 
     fig_height: 4
     highlight: pygments
     theme: spacelab
