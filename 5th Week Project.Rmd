@@ -1,13 +1,16 @@
 ---
 title: "GaryFH - 5th Week Project - Exploring the BRFSS data"
 output: 
-  md_document: 
+  html_document: 
     fig_height: 4
     highlight: pygments
     theme: spacelab
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Setup
+
 
 ### Load packages
 
@@ -30,8 +33,9 @@ your work.
 #load("C:/Users/GaryFH/Dropbox/Rstudio/R data files/Duke introduction to statistics with R/DukeCourseProject1/_384b2d9eda4b29131fb681b243a7767d_brfss2013.RData")
 #class(brfss2013)
 #df1<-tbl_df(brfss2013)
-#saveRDS(df1,"df1")
+#saveRDS(df1,"df1") 
 df1<-readRDS("df1")
+#ames
 ```
 
 
@@ -183,7 +187,7 @@ summary(fit4)
 
 
 ###Conclusion for **Research quesion 2**:
-The data indicates a minimal correlation (Note that the p-values were relatively high and the Adjusted R values relatively low) between exercise and sleep and the number of perceived days FULL OF ENERGY.   The data indicates a strong correlation between diet and the number of perceived days FULL OF ENERGY.  Note that the p-value(0.007506) is relatively low which suggests that we should reject the “null hypothesis” thus indicating a correlation.  The low Adjusted R-squared(0.3295) would indicate a relatively weak casual relationship and further investigations may uncover confounding variables (such as the potential the possible placebo effect that people who think they eat well would also report having more energy).
+The data indicates a minimal correlation (Note that the p-values were relatively high and the Adjusted R values relatively low) between exercise and sleep and the number of perceived days FULL OF ENERGY.   The data indicates a strong correlation between diet and the number of perceived days FULL OF ENERGY.  Note that the p-value(0.007506) is relatively low which suggests that we should reject the null hypothesis thus indicating a correlation.  The low Adjusted R-squared(0.3295) would indicate a relatively weak casual relationship and further investigations may uncover confounding variables (such as the potential the possible placebo effect that people who think they eat well would also report having more energy).
 
 
 

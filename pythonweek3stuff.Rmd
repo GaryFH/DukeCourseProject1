@@ -1,0 +1,682 @@
+---
+title: "python look at file"
+author: "GaryFH"
+date: "May 2, 2018"
+output: html_document
+---
+
+
+### Set up environment
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE}
+suppressWarnings(library(dplyr))
+suppressWarnings(library(tidyr))
+options(scipen=999,digits = 2)
+suppressWarnings(library(gridExtra))
+suppressWarnings(library(data.table))
+suppressWarnings(library(readr))
+suppressWarnings(library(stringi))
+#intelcust256<-readRDS("intelcust256.RDS")
+
+
+           
+```
+
+
+### Load data and make like other DF's by mutate and remove rows.  Note that DF5 from Jared had list variable that had to be treated differently from the DF1-DF4). 
+###save all rows DF as df5tot - use only first 500000 rows (called df5).
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE, eval=FALSE}
+
+#Load data and make like other DF's - use only first 500000 rows
+
+#csdp-256-bench1-all;  csdp-256-wcp1-all;  hgst-256-bench-all;  hgst-256-wcp1-all,  
+
+
+
+demozipcode<-read.csv("Demographic_Statistics_By_Zip_Code.csv")  #,nrows = 6000000
+dfff1<-tbl_df(demozipcode)
+dim(dfff1)
+
+dff1<-tail(dfff1,500000)
+
+dff1<-mutate(dff1,Source="hgst256wcp1all")
+dff1<-Filter(function(x)!all(is.na(x)),dff1)
+names(dff1) <- gsub(" ", ".", names(dff1)) #changes var names with spaces to have "." connectors
+dff1<-mutate(dff1,Cpl=ifelse('Cpl.Status'=="SC","Cpl","NA"))
+dff1<-rename(dff1,Link.Tra=Packet,Data=DATA)
+#dff1<-select(dff1,Source,Link.Tra,Link.Dir,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN,Time.Stamp)
+df5<-dff1
+
+
+
+
+#Note that DF5 from Jared had list variable that had to be treated differently from the DF1-DF4
+
+df5$Time.Stamp<-strsplit(df5$Time.Stamp,"s")
+df5$Time.Stamp<- as.numeric(unlist(df5$Time.Stamp))
+
+df5$Data<-strsplit(df5$Data,"B")
+df5$Data<-as.character(df5$Data)
+
+df5$Data<-as.numeric(df5$Data)
+df5<-mutate(df5,Data=ifelse((Data>=4&Data<=256),Data,"NA"))
+df5$Data<-as.numeric(df5$Data)
+options(digits = 14)
+aabb<-df5$Time.Stamp[1]
+df5<-mutate(df5,TimeStampNano=((Time.Stamp-aabb)*1000000000))
+df5$Link.Tra<-as.integer(df5$Link.Tra)
+hgst256wcp1allA<-df5
+saveRDS(hgst256wcp1allA,file = "hgst256wcp1allA.RDS")
+#df5tot<-df5
+#saveRDS(df5tot,file = "df5tot.RDS")
+#df5<-head(df5tot,500000)
+#df5middle<-slice(df5tot,7000000:7500000)
+#df5end<-tail(df5tot,500000)
+#saveRDS(df5middle,file = "df5middle.RDS")
+#saveRDS(df5end,file = "df5end.RDS")
+
+
+df55<-select(df5,Source,TimeStampNano,Link.Dir,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+df55<-mutate(df55,rn=row_number())
+df55$Link.Tra<-as.integer(df55$Link.Tra)
+
+
+#df55$Data<-as.numeric(df55$Data)df55$Link.Tra<-as.integer(df55$Link.Tra)
+csdp256bench1allB<-df55
+saveRDS(csdp256bench1allB,file = "csdp256bench1allB.RDS")
+
+
+#df55e<-select(df5end,Source,TimeStampNano,Link.Dir,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+#df55e<-mutate(df55e,rn=row_number())
+#df55e<-select(df5end,Source,TimeStampNano,Link.Dir,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+#df55e<-mutate(df55e,rn=row_number())
+#df55e$Data<-as.numeric(df55e$Data)
+#saveRDS(df55e,file = "df55e.RDS")
+#saveRDS(df55m,file = "df55m.RDS")
+
+           
+```
+
+
+
+
+
+### Create d5D by filtering for only Link.Dir==Downstream and Cpl==Cpl.
+### Create d5Up by filtering for only Link.Dir==Upstream and TLP.Type==MRd(64).
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE,eval=FALSE}
+
+
+#d5D
+df5Down<-filter(df5,Link.Dir=="Downstream")
+df5Down<-select(df5Down,Source,TimeStampNano,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+d5D<-filter(df5Down,Cpl=="Cpl")
+
+
+df5Up<-filter(df5,Link.Dir=="Upstream")
+df5Up<-select(df5Up,Source,TimeStampNano,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+d5U<-filter(df5Up, TLP.Type=="MRd(64)")
+
+
+#d5Dmiddle
+df5Downm<-filter(df5middle,Link.Dir=="Downstream")
+df5Downm<-select(df5Downm,Source,TimeStampNano,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+d5Dm<-filter(df5Downm,Cpl=="Cpl")
+
+
+df5Upm<-filter(df5middle,Link.Dir=="Upstream")
+df5Upm<-select(df5Upm,Source,TimeStampNano,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+d5Um<-filter(df5Upm, TLP.Type=="MRd(64)")
+
+
+#d5Dend
+df5Downe<-filter(df5end,Link.Dir=="Downstream")
+df5Downe<-select(df5Downe,Source,TimeStampNano,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+d5De<-filter(df5Downe,Cpl=="Cpl")
+
+
+df5Upe<-filter(df5end,Link.Dir=="Upstream")
+df5Upe<-select(df5Upe,Source,TimeStampNano,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+d5Ue<-filter(df5Upe, TLP.Type=="MRd(64)")
+
+
+
+           
+```
+
+
+
+
+### Work with DF5 Create "breaktime" - DOWN
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE,eval=FALSE}
+
+GFCreateDownbreaktime<- function(z,zz)  {
+        
+        df<-(select(z,TimeStampNano))
+        
+        for (i in 1:nrow(df)) {
+                dff<-df[i,]
+                dff<-mutate(dff,breaktime=ifelse(i==1,0,ifelse(df$TimeStampNano[(i-1)]==0,df$TimeStampNano[i],(df$TimeStampNano[i]-df$TimeStampNano[i-1]))))
+                
+                ifelse(i==1,d<-dff,d<-bind_rows(d,dff))
+                
+                if(i==nrow(df)){
+                        
+                        saveRDS(d,file = "d.RDS")
+                }
+        }
+        
+        dfq<-readRDS("d.RDS")
+        dfq<-full_join(z,dfq, by = "TimeStampNano")
+        dfq<-select(dfq,Source,TimeStampNano,breaktime,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl,Byte.Cnt,PSN)
+        
+        dfname<-paste(z[2,1],"DownBreakCreate",zz,sep="")
+        pp<-assign(dfname,dfq)
+        dfname2<-paste(dfname,".RDS",sep = "")
+        saveRDS(pp,file = dfname2)
+        print(paste("The DF is saved in the working directory as ",dfname,".RDS",sep=""))
+        
+        print(paste(zz,"Make sure to add ReadRDS(",dfname,".RDS",")"," in paraenesis to startup",sep=""))
+        
+}
+
+GFCreateDownbreaktime(d5D,"")
+GFCreateDownbreaktime(d5Dm,"Middle") #- used to create d1down
+#Make sure to add readRDS(intelcust256DownBreakCreate.RDS) in paraenesis to startup
+
+#d5down<- readRDS("intelcust256DownBreakCreate.RDS")
+
+d5downm<- readRDS("intelcust256DownBreakCreateMiddle.RDS")
+d5downe<- readRDS("intelcust256DownBreakCreateEnd.RDS")
+           
+```
+
+
+
+
+### Work with DF5    Create "breaktime" - UP
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE,eval=FALSE}
+
+
+GFCreateUpbreaktime<- function(z,zz)  {
+        
+        df<-(select(z,TimeStampNano))
+        
+        for (i in 1:nrow(df)) {
+                dff<-df[i,]
+                dff<-mutate(dff,breaktime=ifelse(i==1,0,ifelse(df$TimeStampNano[(i-1)]==0,df$TimeStampNano[i],(df$TimeStampNano[i]-df$TimeStampNano[i-1]))))
+                
+                ifelse(i==1,d<-dff,d<-bind_rows(d,dff))
+                
+                if(i==nrow(df)){
+                        
+                        saveRDS(d,file = "d.RDS")
+                }
+        }
+        
+        dfq<-readRDS("d.RDS")
+        dfq<-full_join(z,dfq, by = "TimeStampNano")
+        dfq<-select(dfq,Source,TimeStampNano,breaktime,Link.Tra,TLP.Type,Length,Tag,Address,Data,Cpl)
+        
+        dfname<-paste(z[2,1],"UpBreakCreate",zz,sep="")
+        pp<-assign(dfname,dfq)
+        dfname2<-paste(dfname,".RDS",sep = "")
+        saveRDS(pp,file = dfname2)
+        print(paste("The DF is saved in the working directory as ",dfname,".RDS",sep=""))
+        
+        print(paste("Make sure to add ReadRDS(",dfname,".RDS",")"," in paraenesis to startup",sep=""))
+        
+}
+
+
+GFCreateUpbreaktime(d5U,"")
+GFCreateUpbreaktime(d5Ue,"End")# - used to create d1up
+#Make sure to add readRDS(intelcust256UpBreakCreate.RDS) in paraenesis to startup
+
+
+#d5up<-readRDS("intelcust256UpBreakCreate.RDS")
+
+d5upm<- readRDS("intelcust256UpBreakCreateMiddle.RDS")
+d5upe<- readRDS("intelcust256UpBreakCreateEnd.RDS")
+           
+```
+
+
+
+
+### Work with DF5  Create "counter" variable (along with all the P# variables)
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE,eval=FALSE}
+
+
+GFLecroyOpenReadsA<-readRDS("GFLecroyOpenReadsA")
+        
+GFLecroyOpenReads<-readRDS("GFLecroyOpenReads")
+
+
+
+GFLecroyCounter<- function(x,xx)  {
+        
+        df11b<-x
+        df11b<-mutate(df11b,p0=0,p1=0,p2=0,p3=0,p4=0,p5=0,p6=0,p7=0,
+                      p8=0,p9=0,p10=0,p11=0,p12=0,p13=0,p14=0,p15=0,p16=0)
+        #df11b<-head(df11b,200)
+        
+        GFLecroyOpenReadsA(df11b$p0,0,df11b)
+        df11b$p0<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p1,1,df11b)
+        df11b$p1<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p2,2,df11b)
+        df11b$p2<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p3,3,df11b)
+        df11b$p3<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p4,4,df11b)
+        df11b$p4<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p5,5,df11b)
+        df11b$p5<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p6,6,df11b)
+        df11b$p6<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p7,7,df11b)
+        df11b$p7<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p8,8,df11b)
+        df11b$p8<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p9,9,df11b)
+        df11b$p9<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p10,10,df11b)
+        df11b$p10<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p11,11,df11b)
+        df11b$p11<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p12,12,df11b)
+        df11b$p12<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p13,13,df11b)
+        df11b$p13<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p14,14,df11b)
+        df11b$p14<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p15,15,df11b)
+        df11b$p15<-readRDS("d.RDS")
+        GFLecroyOpenReadsA(df11b$p16,16,df11b)
+        df11b$p16<-readRDS("d.RDS")
+        
+        
+        GFLecroyOpenReads(df11b$p0)
+        df11b$p0<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p1)
+        df11b$p1<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p2)
+        df11b$p2<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p3)
+        df11b$p3<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p4)
+        df11b$p4<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p5)
+        df11b$p5<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p6)
+        df11b$p6<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p7)
+        df11b$p7<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p8)
+        df11b$p8<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p9)
+        df11b$p9<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p10)
+        df11b$p10<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p11)
+        df11b$p11<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p12)
+        df11b$p12<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p13)
+        df11b$p13<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p14)
+        df11b$p14<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p15)
+        df11b$p15<-readRDS("d.RDS")
+        GFLecroyOpenReads(df11b$p16)
+        df11b$p16<-readRDS("d.RDS")
+        
+        
+        df11b<-mutate(df11b,counter=(p0+p1+p2+p3+p4+p5+p6+p7+p8+p9+p10+p11+p12+p13+p14+p15+p16)) 
+        
+        dfname<-paste(df11b[2,1],"counter",xx,sep="")
+        pp<-assign(dfname,df11b)
+        dfname2<-paste(dfname,".RDS",sep = "")
+        saveRDS(pp,file = dfname2)
+        print(paste("The DF is saved in the working directory as ",dfname,".RDS",sep=""))
+        
+        print(paste("Make sure to add readRDS(",dfname,".RDS",")"," in paraenesis",sep=""))
+        
+}
+
+
+GFLecroyCounter(df55,"")
+GFLecroyCounter(df55e,"End")
+
+
+df55counterMiddle<-readRDS("intelcust256counterMiddle.RDS")
+df55counterEnd<-readRDS("intelcust256counterEnd.RDS")
+
+```
+
+
+
+
+
+### Load Data
+
+```{r,warning=FALSE,message=FALSE,echo=FALSE}
+
+d1down<-readRDS("intelcust512DownBreak.RDS")
+d2down<-readRDS("intelbench512DownBreakCreate.RDS")
+d3down<-readRDS("hgstcust512DownBreakCreate.RDS")
+d4down<-readRDS("hgstbench512DownBreakCreate.RDS")
+d5down<-readRDS("intelcust256DownBreakCreate.RDS")
+d5downM<- readRDS("intelcust256DownBreakCreateMiddle.RDS")
+d5downE<- readRDS("intelcust256DownBreakCreateEnd.RDS")
+
+d1up<-readRDS("intelcust512UpBreakCreate.RDS")
+d2up<-readRDS("intelbench512UpBreakCreate.RDS")
+d3up<-readRDS("hgstcust512UpBreakCreate.RDS")
+d4up<-readRDS("hgstbench512UpBreakCreate.RDS")
+d5up<-readRDS("intelcust256UpBreakCreate.RDS")
+d5upM<- readRDS("intelcust256UpBreakCreateMiddle.RDS")
+d5upE<- readRDS("intelcust256UpBreakCreateEnd.RDS")
+
+df11counter<-readRDS("intelcust512counter.RDS")
+df22counter<-readRDS("intelbench512counter.RDS")
+df33counter<-readRDS("hgstcust512counter.RDS")
+df44counter<-readRDS("hgstbench512counter.RDS")
+df55counter<-readRDS("intelcust256counter.RDS")
+df55counterMiddle<-readRDS("intelcust256counterMiddle.RDS")
+df55counterEnd<-readRDS("intelcust256counterEnd.RDS")
+
+df11<-readRDS("intelcust512B.RDS")
+df22<-readRDS("intelbench512B.RDS")
+df33<-readRDS("hgstcust512B.RDS")
+df44<-readRDS("hgstbench512B.RDS")
+df55<-readRDS("intelcust256B.RDS")
+df55m<-readRDS("intelcust256Bm.RDS")
+df55e<-readRDS("intelcust256Be.RDS")
+
+#df1<-readRDS("intelcust512A.RDS")
+#df2<-readRDS("intelbench512A.RDS")
+#df3<-readRDS("hgstcust512A.RDS")
+#df4<-readRDS("hgstbench512A.RDS")
+df5tot<-readRDS("intelcust256A.RDS")
+#d1U<-readRDS("d1U.RDS")
+#d2U<-readRDS("d2U.RDS")
+#d3U<-readRDS("d3U.RDS")
+#d4U<-readRDS("d4U.RDS")
+
+GFLecroyOpenReadsA<-readRDS("GFLecroyOpenReadsA")
+        
+GFLecroyOpenReads<-readRDS("GFLecroyOpenReads")
+
+ 
+
+           
+```
+
+
+### Looking at total Intelcust256 (over 14 million rows)
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+
+
+print(paste("Intelcust256Total - Summarize"," TLP.Type"))
+dft<-group_by(df5tot,TLP.Type)
+dft<-filter(dft,TLP.Type!="")
+summarise(dft,n())
+
+print(paste("Intelcust256Total - Summarize"," Tag"))
+dft<-group_by(df5tot,Tag)
+summarise(dft,n())
+
+print(paste("Intelcust256Total - Summarize"," Link.Dir"))
+dft<-group_by(df5tot,Link.Dir)
+summarise(dft,n())
+
+print(paste("Intelcust256Total - Summarize"," TLP.Type"))
+dft<-group_by(df5tot,Length)
+summarise(dft,n())
+
+
+##Produce table showing percentage of different values of "Data" in DF Intelcust256
+
+GFDataPercentage<-  function(x){
+        
+        dfratio<-x
+        #dfratio%>%drop_na(Data)
+        dfratio<-drop_na(dfratio,Data)
+
+        ratio<-group_by(dfratio,Data)
+        summarise(ratio,Percent=((n()/nrow(dfratio))*100))
+      
+}
+
+
+gt<-GFDataPercentage(df5tot)
+gt$Data<-as.numeric(gt$Data)
+ee<-GFDataPercentage(df55)
+ff<-GFDataPercentage(df55m)
+gg<-GFDataPercentage(df55e)
+
+
+ratioc<-full_join(gt,ee,by="Data")
+ratioc<-full_join(ratioc,ff,by="Data")
+ratioc<-full_join(ratioc,gg,by="Data")
+ratioc<-arrange(ratioc,Data)
+ratioc<-rename(ratioc,Intelcust256Total=Percent.x,intelcust256Start=Percent.y,intelcust256Mid=Percent.x.x,Intelcust256End=Percent.y.y)
+print( "Percentage of Data for each Data size")
+
+grid.table(round(ratioc,2),rows=NULL)
+
+
+
+
+
+```
+
+
+### Percentage of "Data" at each of the "Data" sizes
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+GFDataPercentage<-  function(x){
+        
+        dfratio<-x
+        #dfratio%>%drop_na(Data)
+        dfratio<-drop_na(dfratio,Data)
+
+        ratio<-group_by(dfratio,Data)
+        summarise(ratio,Percent=((n()/nrow(dfratio))*100))
+      
+}
+
+#dft<-group_by(df5tot,TLP.Type)
+
+aa<-GFDataPercentage(df11)
+bb<-GFDataPercentage(df22)
+cc<-GFDataPercentage(df33)
+dd<-GFDataPercentage(df44)
+#ee<-GFDataPercentage(df55)
+#ff<-GFDataPercentage(df55m)
+gg<-GFDataPercentage(df55e)
+
+
+ratioc<-full_join(aa,bb,by="Data")
+ratioc<-full_join(ratioc,cc,by="Data")
+ratioc<-full_join(ratioc,dd,by="Data")
+ratioc<-full_join(ratioc,gg,by="Data")
+
+ratioc<-arrange(ratioc,Data)
+ratioc<-rename(ratioc,Intelcust512=Percent.x,intelbnch512=Percent.y,Hgstcust512=Percent.x.x,Hgstbnch512=Percent.y.y,Intelcust256End=Percent)
+print( "Percentage of Data for each Data size")
+
+grid.table(round(ratioc,2),rows=NULL)
+
+#bg<-as.matrix(ratioc)
+#write.table(round(bg,4), row.names=F, sep="\t")
+
+```
+
+
+
+### Summary and Plots for "breaktime" data (both upstream and downstream)
+
+```{r, warning=FALSE,message=FALSE}
+
+
+GFBreak<<-function(z,zz)  {
+        
+        print(paste(z[2,1],zz ,"Breaktime/Gap summary stats"))
+        print(summary(z$breaktime))
+        abn<-filter(z,breaktime>=0)
+        plot(x=abn$TimeStampNano,y=abn$breaktime,main=paste(zz,z[2,1]) ,ylab="Break Time in ns") 
+ }
+
+
+GFBreak(d5up,"d5up")
+GFBreak(d5upM,"d5upM")
+GFBreak(d5upE,"d5upE")
+
+GFBreak(d5down,"d5down")
+GFBreak(d5downM,"d5downM")
+GFBreak(d5downE,"d5downE")
+
+
+     
+        
+```        
+        
+
+### Breaktime outlier list of Link.Tra for top 10 highest breaktimes
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+#print("v=DF, w=Multiplier for mean")
+
+GFLecroyGapOutliers<- function(v,w,z)  {
+
+        dr<-filter(v,breaktime>=(w*(mean(v$breaktime))))
+        dr<-mutate(dr,rn=row_number())
+        agt<-length(dr$breaktime)
+        percentage<-(agt*100)/nrow(v)
+        print(paste(v[2,1],z,round(percentage,5),"% of observations are greater than ",w," times the avg breaktime "))
+        e<-arrange(v,desc(breaktime))
+        f<-filter(e,breaktime<= head(e$breaktime,20)[1]&breaktime>= head(e$breaktime,20)[20])
+        
+        ff<-select(f,breaktime,TimeStampNano,Link.Tra)
+        print(paste(v[2,1],z,"- List of LinkTra's for the 20 highest Breaktimes"))
+        as.data.frame(ff)
+}
+
+GFLecroyGapOutliers(d5down,10,"d5down")
+GFLecroyGapOutliers(d5downM,10,"d5downM")
+GFLecroyGapOutliers(d5downE,10,"d5downE")
+
+GFLecroyGapOutliers(d5up,10,"d5up")
+GFLecroyGapOutliers(d5upM,10,"d5upM")
+GFLecroyGapOutliers(d5upE,10,"d5upE")
+
+
+```
+
+
+
+
+### Percentage of total DF within specified %of avg breaktime
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+GFLecroyPercLess<- function(v,w,z)  {
+
+        dr<-filter(v,breaktime<=(w*(mean(v$breaktime))))
+        dr<-mutate(dr,rn=row_number())
+        agt<-length(dr$breaktime)
+        percentage<-(agt*100)/nrow(v)
+        print(paste(v[2,1],z,round(percentage,5),"% of observations are less than ",w," times the avg breaktime "))
+}
+
+GFLecroyPercLess(d5downE,2,"d5downE")
+GFLecroyPercLess(d5downE,3,"d5downE")
+
+
+GFLecroyPercLess(d5upE,2,"d5upE")
+GFLecroyPercLess(d5upE,3,"d5upE")
+
+```
+
+
+
+
+### Plots of breaktime near average values "NO OUTLIERS"
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+GFbreaktimeplot <-function(x,y,z){
+        
+        abn<-filter(x,breaktime<=(y*mean(x$breaktime)))
+        boxplot(abn$breaktime,main=paste(z, "Max breaktime is", y ,"times avg  DownStream ",x[2,1]),ylab="Break Time in ns")
+        hist(abn$breaktime,main=paste(z,"Max breaktime is", y ,"times avg  DownStream ",x[2,1]))
+  
+}
+
+GFbreaktimeplot(d5downE,2,"d5downE")
+
+GFbreaktimeplot(d5upE,2,"d5upE")
+
+
+
+```
+
+
+
+
+### Summary, stats and plots for variable "counter"
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+
+GFCounter<<- function(x,xx)  {
+        print(paste("Summary of",xx,x[2,1] ,"Counter"))
+        print(summary(x$counter))
+        
+        print(paste("Stats for",xx,x[2,1] ,"Counter"))
+        fit<-lm(counter~TimeStampNano,x)
+        print(summary(fit))
+        
+        print(paste("Plots for",xx,x[2,1] ,"Counter"))
+        hist(x$counter,main = paste(xx,x[2,1]," counter"))
+        plot(x=x$TimeStampNano, y=x$counter,main = paste(xx,x[2,1]," counter"))
+        
+}
+
+GFCounter(df55counterEnd,"dfcounterEnd")
+
+
+```
+
+
+
+
+
+### Investigate time period where activity is null - counters - 0
+## This shows the Link.Tra for non activity times
+
+```{r, warning=FALSE,message=FALSE,echo=FALSE}
+
+LecroyInvestigate2<- function(x,y,z)  {
+gfh<-filter(x,TimeStampNano>=y&TimeStampNano<=z)
+gfh2<-filter(gfh,counter==0)
+print(paste(x[2,1]," When the counter value=0, and between TimeStampNano values of" ,y," and ",z))
+as.data.frame(select(gfh2,Link.Tra,Tag,TimeStampNano,counter))
+        }
+
+bb<-(LecroyInvestigate2(df55counterEnd,3442000000,3448000000))
+aq<-summary(bb$Link.Tra)
+print(paste("# of zero value counter =", nrow(bb),"  Lowest Link.Tra =",aq[1],"Highest Link.Tra =", aq[6]))
+```
+ 

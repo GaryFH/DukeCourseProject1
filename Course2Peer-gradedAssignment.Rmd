@@ -1,0 +1,294 @@
+
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+editor_options: 
+  chunk_output_type: console
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE, warning=FALSE}
+library(tidyr)
+library(pander)
+library(pwr)
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(gridExtra)
+source('http://bit.ly/dasi_inference')
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `gss`. Delete this note when before you submit 
+your work. 
+
+```{r load-data, message = FALSE, warning=FALSE}
+df1<-load("_5db435f06000e694f6050a2d43fc7be3_gss.Rdata")
+gss<-tbl_df(gss)
+dim(gss)
+```
+###code book 
+######https://d18ky98rnyall9.cloudfront.net/_8abbe344133a7a8c98cfabe01a5075c2_gss.html?Expires=1516406400&Signature=V~iMsjIdAicDBmM9JU9KtAwYwK0pOTVMzML-Fru-X~EhYBNz5Feo6GUGdJUR2E1wO2UI3pj7QBx5OmJPdWewjoBQ9eC0DCvxvW2hwN-SGBRJilx2OvkjkikRnJN36NYMsJUXefCBCoapTK6u9cQ~q5QhwmHqjHLYzsvYyIMKCBY_&Key-Pair-Id=APKAJLTNE6QMUY6HBC5A
+
+###Assessment rubic
+######https://d18ky98rnyall9.cloudfront.net/_c130de4ce4e6675cb5488a51e07c99bd_stat_inf_project_rubric.html?Expires=1516233600&Signature=J3lx3QWcao66htyYCp3vdu~2f8DbYBUyDh3n4rhpN-8ibfPrLyZULStWAQLlQX96zIysidv6NWfwLzlCj-SuPtZ6G8lPVJ~j5suT5uf6G-pHuyb0FUWwGJQye73gIKfcoHKLiFYIDnfwz5pZ7MWAzN1S1nTmNKqhefw26Rs2yCU_&Key-Pair-Id=APKAJLTNE6QMUY6HBC5A
+
+###GSS home page
+######http://gss.norc.org/
+
+
+* * *
+
+## Part 1: Data 
+######(some of below comments was taken from the GSS website and/or other online sources)
+###The General Social Survey
+####Since 1972, the General Social Survey (GSS) has been monitoring societal change and studying the growing complexity of American society. The GSS aims to gather data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes; to examine the structure and functioning of society in general as well as the role played by relevant subgroups; to compare the United States to other societies in order to place American society in comparative perspective and develop cross-national models of human society; and to make high-quality data easily accessible to scholars, students, policy makers, and others, with minimal cost and waiting. 
+####GSS questions cover a diverse range of issues including national spending priorities, marijuana use, crime and punishment, race relations, quality of life, confidence in institutions, and sexual behavior 
+####The GSS aims to make high-quality data easily accessible to scholars, students, policy makers, and others, with minimal cost and waiting.
+####The GSS uses face-to-face interviews by professional interviewers in US households - one adult is randomly selected from each household. The goal is to target a well-defined population that is representative of the target population of US adults.
+####The GSS claims that its samples closely resemble US population distributions as reported in the Census. Conclusions drawn from the data are mostly generalizable to US adults.
+####This survey is not an experiment or observational study and doesn't have random assignment of respondents to the factors under consideration - thus associations can be obscured by lurking variables and bias - therefore you can't rule out other confounding factors that may affect any discovered associations between the measured variables. Thus no causality is found only associations which could be used as a basis for future experiments/observational studies to help show causality.
+
+
+* * *
+
+
+* * *
+
+## Part 2: Research question
+
+####I am interested in what causes/influences people who grew up poor to improve their financial status as an adult - I am going to do some preliminary investigation into three potential predictor/expanatory variables :  education,  religious activity and political philosophy.   I make a new "factor" variable for each of these categories  which join the multiple potential survey responses into two categories (education into "college/no college";  religious activity into "active/not active" and political philosophy into "conservative/liberal" ).    For any of these potential predictor variables that show promise in the initial Exploratory Analysis I will perform inference testing.
+* * *
+####**My interest in this subject is to explore what types of life style choices could be effective in improving one's life.**
+
+* * *
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+####Select variables to be explored
+
+```{r, message = FALSE, warning=FALSE}
+df2 <- gss %>% select(degree,attend,polviews, incom16, finrela)
+df2<-na.omit(df2)
+#df2 <- df2[complete.cases(df2),]
+df2org<-df2
+#df2<-na.fail(df2)
+```
+
+
+
+* * *
+
+
+#### Filter for only respondents with below average family income when they were 16, and mutate the data frame to add the new variables (response variable:- "income_today" and three potential explanatory variables: "education","religious","politics")
+
+```{r, message = FALSE, warning=FALSE}
+df2 <- df2 %>%
+    filter(incom16 == "Below Average" | incom16 == "Far Below Average") %>%
+    mutate(education = ifelse((degree == "Lt High School" | degree == "High School"), "No College Degree", "College Degree"), income_today = ifelse((finrela == "Far Above Average" | finrela == "Above Average"), "Above Average", "Not Above Average"), politics = ifelse((polviews == "Extrmly Conservative" | polviews == "Conservative"| polviews == "Slightly Conservative"), "conservative", "liberal"), religious = ifelse((attend == "More Thn Once Wk"|attend == "Every Week"| attend == "Nrly Every Week"|attend == "2-3X A Month"|attend == "Once A Month"),"Active","NotActive"))
+df2$education <- factor(df2$education)
+df2$income_today <- factor(df2$income_today)
+df2$religious <- factor(df2$religious)
+df2$politics <- factor(df2$politics)
+# Select the new variables only
+df2 <- droplevels(df2) %>% select(education,religious,politics,income_today)
+# Take a glimpse of the data
+glimpse(df2)
+
+
+```
+
+
+
+* * *
+
+####Show a plot and table for explanatory variable **"Education"** and response variable "Current Income" -  36.1% of those with college degrees reported above average incomes vrs only 10.2% of those without college degrees - thus the potential for a strong association is found.
+
+```{r, message = FALSE, warning=FALSE}
+# Use ggplot to plot the difference in proportions between those who earned a college degree and those who did not
+#ggplot(study, aes(x = education,fill= income_today)) + 
+#geom_bar(position = "fill") +
+#scale_y_continuous(labels = c("0%", "25%", "50%", "75%", "100%")) +
+    labs(title = "Proportion of US Adults Raised in Below Average Income Families' \n Present Income by Education Level", y = "% Adults in Each Present Income Category", x = "Education Level", fill = "Present Income")
+##df22<-select(df2,income_today,education)
+##df222<-na.omit(df22)
+df3<-group_by(df2,education,income_today)
+bbb<-summarise(df3,count=n())
+bbb2<-bbb
+bbb2<-group_by(bbb2,education) 
+bbb2<-summarise(bbb2,sum(count))
+bbb2
+
+bbb<-mutate(bbb,percentage=ifelse(education=="College Degree",count*100/(as.numeric(bbb2[1,2])),count*100/(as.numeric(bbb2[2,2]))))
+
+bbb$percentage<-round(bbb$percentage,digits = 1)
+
+
+ggplot(bbb, aes(x = education, y=percentage, fill= income_today)) + 
+geom_col() +
+scale_y_continuous(labels = c("0%", "25%", "50%", "75%", "100%")) +
+    labs(title = "Proportion of US Adults Raised in Below Average Income Families' \n Present Income by Education Level", y = "% Adults in Each Present Income Category", x = "Education Level", color = "Present Income")+
+geom_text(aes(label = percentage),size=6,vjust=1.5,position ="stack" )+
+theme(plot.title = element_text(hjust = .5))
+```
+
+
+* * *
+
+```{r, message = FALSE, warning=FALSE}
+#library(gridExtra)
+#bcd<-tbl_df(as.data.frame(summary(df2)))
+#bcd<-rename(bcd,Variable=Var2)
+#bcd<-select(bcd,Variable,Freq)
+grid.table(bbb)
+```
+
+
+* * *
+
+####Show a plot and table for explanatory variable **"Religious"** and response variable "Current Income" -  Since 15.3% of those reporting to be active religiously reported above average incomes and a similar 16.1% of those reporting to not be active religiously also reported above average incomes - thus minimal association was attributed to religious activity and above average income.
+
+```{r, message = FALSE, warning=FALSE}
+
+
+df4<-group_by(df2,religious,income_today)
+ccc<-summarise(df4,count=n())
+ccc2<-ccc
+ccc2<-group_by(ccc2,religious) 
+ccc2<-summarise(ccc2,sum(count))
+ccc2
+
+ccc<-mutate(ccc,percentage=ifelse(religious=="Active",count*100/as.numeric(ccc2[1,2]),
+          count*100/as.numeric(ccc2[2,2])))
+
+ccc$percentage<-round(ccc$percentage,digits = 1)
+
+
+ggplot(ccc, aes(x = religious, y=percentage, fill= income_today)) + 
+geom_col() +
+scale_y_continuous(labels = c("0%", "25%", "50%", "75%", "100%")) +
+    labs(title = "Proportion of US Adults Raised in Below Average Income Families' \n Present Religious Level", y = "% Adults in Each Present Income Category", x = "Religious Activity", fill = "Present Income")+
+geom_text(aes(label = percentage),size=6,vjust=1.5,position ="stack" )+
+theme(plot.title = element_text(hjust = .5))
+```
+
+
+* * *
+
+```{r, message = FALSE, warning=FALSE}
+
+grid.table(ccc)
+```
+
+
+* * *
+
+####Show a plot and table for explanatory variable **"Politics"** and response variable "Current Income" -  19.2% of those "conservatives" reported above average incomes vrs only 13.6% of liberals - thus the potential for an association is found.
+
+```{r, message = FALSE, warning=FALSE}
+
+
+df5<-group_by(df2,politics,income_today)
+ddd<-summarise(df5,count=n())
+ddd2<-ddd
+ddd2<-group_by(ddd2,politics) 
+ddd2<-summarise(ddd2,sum(count))
+ddd2
+
+ddd<-mutate(ddd,percentage=ifelse(politics=="conservative",
+            count*100/as.numeric(ddd2[1,2]),count*100/as.numeric(ddd2[2,2])))
+
+ddd$percentage<-round(ddd$percentage,digits = 1)
+
+
+ggplot(ddd, aes(x = politics, y=percentage, fill= income_today)) + 
+geom_col() +
+scale_y_continuous(labels = c("0%", "25%", "50%", "75%", "100%")) +
+    labs(title = "Proportion of US Adults Raised in Below Average Income Families' \n Political View", y = "% Adults in Each Present Income Category", x = "Political View", fill = "Present Income")+
+geom_text(aes(label = percentage),size=6,vjust=1.5,position ="stack" )+
+theme(plot.title = element_text(hjust = .5))
+```
+
+
+* * *
+
+
+```{r, message = FALSE, warning=FALSE}
+grid.table(ddd)
+```
+
+* * *
+
+* * *
+
+
+## Part 4: Inference
+
+###The above exploratory data analysis suggests that inference analysis on both "political views" and "education level" as a predictors of people from modest childhood economic cirmanstances achieving above average adult incomes could show associations but that a person's "political view"" would probably not show an association from inference analysis.   Remember the GSS survey (which is the source the data) is not an experiment or observational study and doesn't have random assignment of respondents to the factors under consideration - thus associations can be obscured by lurking variables and bias - therefore you can't rule out other confounding factors that may affect any discovered associations between the measured variables. **Thus no causality is found only associations which could be used as a basis for future experiments/observational studies to help show causality.** 
+
+
+* * *
+* * *
+
+####**Inference tests** with **education level** as a predictor of of people from modest childhood economic cirmanstances achieving above average adult incomes.
+```{r, message = FALSE, warning=FALSE}
+
+inference(df3$income_today,df3$education,est = "proportion",type = "ci" ,method = "theoretical",success="Above Average")
+
+inference(df3$income_today,df3$education,est = "proportion",type = "ht" ,method = "theoretical",success="Above Average",null = 0,alternative = "twosided")
+```
+
+* * *
+####**The confidence interval test, "ci",  indicates almost a 26% difference in proportions".   The hypothesis test, "ht",  shows a high p-value which rounds to "0".  Thus both methods provide strong evidence is found to reject the null hypothesis and an association is found between having a college degree and reporting an above average income.**
+
+* * *
+* * *
+* * *
+
+####**Inference tests** with **political view** (conservative or liberal) as a predictor of of people from modest childhood economic cirmanstances achieving above average adult incomes.
+```{r, message = FALSE, warning=FALSE}
+
+inference(df3$income_today,df3$politics,est = "proportion",type = "ci" ,method = "theoretical",success="Above Average")
+
+inference(df3$income_today,df3$politics,est = "proportion",type = "ht" ,method = "theoretical",success="Above Average",null = 0,alternative = "twosided")
+```
+
+
+* * *
+####**The confidence interval test, "ci",  indicates almost a 6% difference in proportions.   The hypothesis test, "ht",  shows a high p-value which rounds to "0".  Thus both methods provide strong evidence is found to reject the null hypothesis and an association is found between political view and reporting an above average income.**
+
+* * *
+* * *
+* * *
+####**Inference tests** with **religious activity** as a predictor of of people from modest childhood economic cirmanstances achieving above average adult incomes.
+```{r, message = FALSE, warning=FALSE}
+
+inference(df3$income_today,df3$religious,est = "proportion",type = "ci" ,method = "theoretical",success="Above Average")
+
+inference(df3$income_today,df3$religious,est = "proportion",type = "ht" ,method = "theoretical",success="Above Average",null = 0,alternative = "twosided")
+```
+
+* * *
+####**The confidence interval test, "ci",  indicates less than a 1% difference in proportions.   The hypothesis test, "ht",  shows a high p-value (.31) - both methods show significant evidence that the null hypothesis should not be rejected (no association is found).**
+
+* * *
+* * *
+* * *
+
+## Summary
+* * *
+### It was noted that the exploratory data analysis provided good information to help predict the potential for association between potential predictor variables and the chosen response variable.   It should be noted that the exploratory data analysis for "political view"" as a predictor of above average income was not very strong (as compared to "education") and that the inference analysis was particullarly important to prove this association.
+* * *
+###  It is acknowledged that since the GSS survey is not an experiment or observational study and that confounding factors may impact the associations found in this analysis - thus a carefully constructed study will be required to determine actual associations and causality.   A study that documented actual income vrs self reported income perception would be a major improvement.   Also confirmation of actual college degrees including the student's major,  GPA,  and any advanced degrees would be of interest and improve future analysis.
