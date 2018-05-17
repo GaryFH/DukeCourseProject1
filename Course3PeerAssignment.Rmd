@@ -32,6 +32,7 @@ suppressWarnings(library(grid))
 suppressWarnings(library(gtable))
 suppressWarnings(library(devtools))
 suppressWarnings(library(GGally))
+gh <- function(x, d=2) sprintf(paste0("%1.",d,"f"), x) 
 ```
 
 ### Load data
@@ -50,10 +51,11 @@ d1<-movies
 
 
 ## Part 1: Data
-### _**TASK:**_ ####    Assignment is to learn what attributes make a movie popular with the goal of creating a predictive algorithm with the response variable being a movies popularity.   
+### _**TASK:**_ 
+####    Assignment is to learn what attributes make a movie popular with the goal of creating a predictive algorithm with the response variable being a movies popularity.   
 * * *
 #####Quoted from the **_Codebook for Movies dataset_**:  "The data set is comprised of 651 randomly sampled movies produced and released before 2016.  Some of these variables are only there for informational purposes and do not make any sense to include in a statistical analysis."   
-#####Note that after Exploratory data analysis and preprocessing of the dataframe, **the number of variables** used for statistical analysis was **reduced from 32 down to only 15**.
+#####Note that after Exploratory data analysis and preliminary preprocessing of the dataframe, **the number of variables** used for statistical analysis was **reduced from 32 down to only 11**.
 
 
 
@@ -63,7 +65,7 @@ d1<-movies
 
 ## Part 2: Research question
 * * *
-###As a Data Scientist for a movie studio it is important to provide my employer with evidence to help improve the odds that the movies we produce will be popular.  Therefore the **Primary Question is**: What linear regression model best predicts a movie's popularity - note that this data only allows for correlation predictions and should not be considered to imply causality.
+####As a Data Scientist for a movie studio it is important to provide my employer with evidence to help improve the odds that the movies we produce will be popular.  Therefore the **Primary Question is**: What linear regression model best predicts a movie's popularity - note that this data only allows for correlation predictions and should not be considered to imply causality.
 * * *
 ####Sub questions:
 #####  What accuracy can be expected from this model?
@@ -75,7 +77,7 @@ d1<-movies
 
 ## Part 3: Exploratory data analysis
 * * *
-###__First__, look at the *variables/classes* and examine the **_Codebook for Movies dataset_** with the goal of determining which variables can be excluded from analysis (based on collinearity or being unsuitable for a predictive model).  Note that since I work for a studio it is reasonable to remove the studio variable.  Since the purpose is to "predict" based on current information it is reasonable to exclude all variables which could not currently be know such as: best_dir_win, thtr_rel_year,    dvd_rel_year, critics_score, best_pic_nom.   Also remove variables with long lists of names - such as:all actor variables and the director variable.
+####__First__, look at the *variables/classes* and examine the **_Codebook for Movies dataset_** with the goal of determining which variables can be excluded from analysis (based on collinearity or being unsuitable for a predictive model).  Note that since I work for a studio it is reasonable to remove the studio variable.  Since the purpose is to "predict" based on current information it is reasonable to exclude all variables which could not currently be know such as: best_dir_win, thtr_rel_year,    dvd_rel_year, critics_score, best_pic_nom.   Also remove variables with long lists of names - such as:all actor variables and the director variable.
 
 ```{r,warning=FALSE,message=FALSE,tidy=TRUE}
 print(paste("The movie database is of the class: ",class(d1)[1], "a type of dataframe" ))
@@ -84,7 +86,7 @@ print("Following is a list of all movie variables and their class - shown in par
 sapply(d1,class)  
 ```
 * * *
-###__Second__, remove excluded variables as explained above.
+####__Second__, remove excluded variables as explained above.
 
 ```{r,warning=FALSE,message=FALSE,tidy=TRUE}
 d2<-select(d1,-starts_with("actor"),-rt_url,-imdb_url,-audience_rating,-critics_rating,-studio,  -thtr_rel_year, -dvd_rel_year, -critics_score, -best_pic_nom, -director,-top200_box,
@@ -95,8 +97,8 @@ names(d2)
 
 ```
 * * *
-###__Third__, provide summary statistics for all numeric variables
-####Note that this code turns "ugly" summary printouts into one attractive table
+####__Third__, provide summary statistics for all numeric variables
+#####Note that this code turns "ugly" summary printouts into one attractive table
 
 ```{r,warning=FALSE,message=FALSE,tidy=TRUE}
 
@@ -164,8 +166,12 @@ names(d2)
 
 
 ```
+
 * * *
-###__Fourth__, provide overview graphs of dataframe
+
+
+####__Fourth__, provide overview graphs of dataframe
+
 ```{r,warning=FALSE,message=FALSE,tidy=TRUE}
 
 
@@ -194,7 +200,7 @@ grid.arrange(p1, p2, p3, p4, nrow=2,
 
 ## Part 4: Modeling
 
-### The **_"Popularity"_** variable is determined by "audience_score" (audience_rating is less accurate) and imdb_rating.   A new variable name **_"Popularity"_** was created and used as the _**"Response Variable"**_.  The _**"Popularity"**_ variable combines _audience_score_ (possible values 0-100) plus 10*_imdb_rating_ (times 10 since possible values for _imdb_rating_ are only 0-10).
+#### The **_"Popularity"_** variable is determined by "audience_score" (audience_rating is less accurate) and imdb_rating.   A new variable name **_"Popularity"_** was created and used as the _**"Response Variable"**_.  The _**"Popularity"**_ variable combines _audience_score_ (possible values 0-100) plus 10*_imdb_rating_ (times 10 since possible values for _imdb_rating_ are only 0-10).
 
 
 ```{r,warning=FALSE,message=FALSE}
@@ -206,19 +212,21 @@ print("The predictor variable names of the database used in developing the model
 names(d4[3:10])
 summary(d4$popularity)
 ```
+* * *
 
 ####Note that the following graph shows a relatively uniform distribution for the response variable which is important for non biased models.
-
+* * *
 ```{r,warning=FALSE,message=FALSE}
 p3 <- ggplot(d4, aes(x=popularity)) + 
       geom_histogram(binwidth=5, fill="blue") +
       xlab("Popularity Variable")
-
+p3
 
 ```
 
 * * *
-###A linear regression model is made using all the variables
+####A linear regression model is made using all the variables
+* * *
 ```{r,warning=FALSE,message=FALSE}
 allvar<-lm(popularity~title_type+genre+runtime+mpaa_rating+
         best_actor_win+best_actress_win+best_dir_win+thtr_rel_month,d4)
@@ -227,8 +235,9 @@ anova(allvar)
 
 ```
 * * *
-###Remove variables with high (over .05) p-Values one at a time, starting with the highest.  Rerun anova after each removal and repeat until all variables with p-Values over .05 are gone.
-```{r,warning=FALSE,message=FALSE,echo=FALSE}
+####Remove variables with high (over .05) p-Values one at a time, starting with the highest.  Rerun anova after each removal and repeat until all variables with p-Values over .05 are gone.
+* * *
+```{r,warning=FALSE,message=FALSE}
 #remove thtr_rel_month from full model first
 mod1<-lm(popularity~title_type+genre+runtime+mpaa_rating+
         best_actor_win+best_actress_win+best_dir_win,d4)
@@ -243,19 +252,25 @@ mod3<-lm(popularity~title_type+genre+runtime+mpaa_rating+best_dir_win,d4)
 anova(mod3)
 
 #no more high P-Values;  therefore the final model is mod3
-names(d4)
+
 d5<-select(d4,-best_actress_win,-best_actor_win,-thtr_rel_month)
+print("Following list are the names used in the final predictor model")
 names(d5[3:7])#predictor variable names for final model
 
 finalmod<-mod3
+gg<-summary(finalmod)
+gg<-gg$r.squared
+gg<-gh(gg,3)#gh is program loaded at top of this report for setting decimals
+print(paste("Rsquared for the final model is:",gg,"- which does not indicate a strong model"))
 
 ```
 * * *
 ###Verify that the final model is credible
-####No significant correlation between the variables was found
-####The residuals are _**distributed around 0**_ - from the Residual Distribution Plot
-####**_Nearly normal residuals_**: By looking at the histogram and Q-Q plot
-####From Residuals Distribution Plot - Residuals have _**constant variability**_.
+####1) No significant correlation between the variables was found
+####2) The residuals are _**distributed around 0**_ - from the Residual Distribution Plot
+####3) **_Nearly normal residuals_**: By looking at the histogram and Q-Q plot
+####4) From Residuals Distribution Plot - Residuals have _**constant variability**_.
+* * *
 ```{r,warning=FALSE,message=FALSE}
 
 #ggpairs(d5[3:4],columns = 1:2)
@@ -286,16 +301,45 @@ p3 <- ggplot(finalmod, aes(sample=finalmod$residuals)) +
 
 ## Part 5: Prediction
 * * *
-###Apply finalmodel to predict popularity of two films released in 2017: _**The Greatest Showman**_ and _**Spider-Man: Homecoming**_
-
+####Apply finalmodel to predict popularity of two films released in 2017: _**The Greatest Showman**_ and _**Spider-Man: Homecoming**_
+* * *
 ```{r,warning=FALSE,message=FALSE}
+
+
+dShowman <- data.frame(title_type="Feature Film", genre="Drama", runtime=105, mpaa_rating="PG", best_dir_win="no")
+ShowmanPred <- predict(finalmod, dShowman, interval="predict")
+ShowmanAct<-87+(10*7.8)
+
+dSpider <- data.frame(title_type="Feature Film", genre="Action & Adventure", runtime=133, mpaa_rating="PG-13", best_dir_win="no")
+SpiderPred<- predict(finalmod, dSpider, interval="predict")
+SpiderAct<-88+(10*7.5)
 
 
 
 
 
 ```
+* * *
+* * *
+* * *
+####Spider-Man: Homecoming prediction Results - note actual rating is within 95% range
+* * *
+```{r,,warning=FALSE,message=FALSE}
+gh <- function(x, d=2) sprintf(paste0("%1.",d,"f"), x) 
+print(paste("Predicted Rating",gh(SpiderPred[1]),"95% Range",gh(SpiderPred[2]),"-",gh(SpiderPred[3])," Actual Rating:",gh(SpiderAct)))
 
+
+```
+
+* * *
+* * *
+* * *
+###The Greatest Showman prediction Results - note actual rating is within 95% range
+* * *
+```{r,,warning=FALSE,message=FALSE}
+print(paste("Predicted Rating",gh(ShowmanPred[1]),"95% Range",gh(ShowmanPred[2]),"-",gh(ShowmanPred[3])," Actual Rating:",gh(ShowmanAct)))
+
+```
 
 
 * * *
@@ -303,3 +347,14 @@ p3 <- ggplot(finalmod, aes(sample=finalmod$residuals)) +
 * * *
 
 ## Part 6: Conclusion
+* * *
+####1) I was able to predict the popularity of a movie based on the final model
+* * *
+####2) The analysis shows that the model meets statistical standards and can be considered valid.
+* * *
+####3) Note that the Rsquared for the final is only .284 which indicates that only about 28% of the information that explains the response variable is found in this model.  Ofcourse it is reasonable that the prediction of a hit movie is difficult - otherwise there wouldn't be so many movies that aren't popular enough to be successful. 
+* * *
+####4) Creating separate models for each _title_type_ and/or _genre_ might help improve the model.
+* * *
+* * *
+
