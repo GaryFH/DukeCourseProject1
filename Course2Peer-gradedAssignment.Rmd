@@ -99,7 +99,7 @@ df2 <- df2 %>%
     filter(incom16 == "Below Average" | incom16 == "Far Below Average") %>%
     mutate(education = ifelse((degree == "Lt High School" | degree == "High School"), "No College Degree", "College Degree"), income_today = ifelse((finrela == "Far Above Average" | finrela == "Above Average"), "Above Average", "Not Above Average"), politics = ifelse((polviews == "Extrmly Conservative" | polviews == "Conservative"| polviews == "Slightly Conservative"), "conservative", "liberal"), religious = ifelse((attend == "More Thn Once Wk"|attend == "Every Week"| attend == "Nrly Every Week"|attend == "2-3X A Month"|attend == "Once A Month"),"Active","NotActive"))
 df2$education <- factor(df2$education)
-df2$income_today <- factor(df2$income_today)
+df2$income_today <- as.factor(df2$income_today) #it looks like factor and as.factor both work the same
 df2$religious <- factor(df2$religious)
 df2$politics <- factor(df2$politics)
 # Select the new variables only
@@ -281,7 +281,7 @@ inference(df3$income_today,df3$religious,est = "proportion",type = "ht" ,method 
 ```
 
 * * *
-####**The confidence interval test, "ci",  indicates less than a 1% difference in proportions.   The hypothesis test, "ht",  shows a high p-value (.31) - both methods show significant evidence that the null hypothesis should not be rejected (no association is found).**
+####**The confidence interval test, "ci",  shows that zero is included in the confidence interval.   The hypothesis test, "ht",  shows a high p-value (.31) - both methods show significant evidence that the null hypothesis should not be rejected (no association is found).**
 
 * * *
 * * *

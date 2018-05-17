@@ -1,0 +1,305 @@
+
+#title: "Course3PeerAssignment"
+#author: "GaryFH"
+#date: "May 15, 2018"
+#output: html_document
+
+---
+title: "Modeling and prediction for movies"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+suppressWarnings(library(ggplot2))
+suppressWarnings(library(statsr))
+suppressWarnings(library(knitr))
+suppressWarnings(library(dplyr))
+suppressWarnings(library(tidyr))
+options(scipen=999,digits = 3)
+suppressWarnings(library(gridExtra))
+suppressWarnings(library(data.table))
+suppressWarnings(library(readr))
+suppressWarnings(library(stringi))
+suppressWarnings(library(grid))
+suppressWarnings(library(gtable))
+suppressWarnings(library(devtools))
+suppressWarnings(library(GGally))
+```
+
+### Load data
+
+```{r load-data}
+load("_e1fe0c85abec6f73c72d73926884eaca_movies.Rdata")
+d1<-movies
+
+
+```
+
+
+* * *
+* * *
+* * *
+
+
+## Part 1: Data
+### _**TASK:**_ ####    Assignment is to learn what attributes make a movie popular with the goal of creating a predictive algorithm with the response variable being a movies popularity.   
+* * *
+#####Quoted from the **_Codebook for Movies dataset_**:  "The data set is comprised of 651 randomly sampled movies produced and released before 2016.  Some of these variables are only there for informational purposes and do not make any sense to include in a statistical analysis."   
+#####Note that after Exploratory data analysis and preprocessing of the dataframe, **the number of variables** used for statistical analysis was **reduced from 32 down to only 15**.
+
+
+
+* * *
+* * *
+
+
+## Part 2: Research question
+* * *
+###As a Data Scientist for a movie studio it is important to provide my employer with evidence to help improve the odds that the movies we produce will be popular.  Therefore the **Primary Question is**: What linear regression model best predicts a movie's popularity - note that this data only allows for correlation predictions and should not be considered to imply causality.
+* * *
+####Sub questions:
+#####  What accuracy can be expected from this model?
+#####  Have you insured predictor variables are not collinear?
+#####   Have you provided evidence of correlation between predictor and responce variable?
+
+* * *
+* * *
+
+## Part 3: Exploratory data analysis
+* * *
+###__First__, look at the *variables/classes* and examine the **_Codebook for Movies dataset_** with the goal of determining which variables can be excluded from analysis (based on collinearity or being unsuitable for a predictive model).  Note that since I work for a studio it is reasonable to remove the studio variable.  Since the purpose is to "predict" based on current information it is reasonable to exclude all variables which could not currently be know such as: best_dir_win, thtr_rel_year,    dvd_rel_year, critics_score, best_pic_nom.   Also remove variables with long lists of names - such as:all actor variables and the director variable.
+
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+print(paste("The movie database is of the class: ",class(d1)[1], "a type of dataframe" ))
+print(paste("The dimensions of the movie database are;", dim(d1)[1],"rows and ",dim(d1)[2]," columns"))
+print("Following is a list of all movie variables and their class - shown in parenthesis")
+sapply(d1,class)  
+```
+* * *
+###__Second__, remove excluded variables as explained above.
+
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+d2<-select(d1,-starts_with("actor"),-rt_url,-imdb_url,-audience_rating,-critics_rating,-studio,  -thtr_rel_year, -dvd_rel_year, -critics_score, -best_pic_nom, -director,-top200_box,
+-imdb_num_votes,-dvd_rel_day,-critics_rating,-dvd_rel_month,-thtr_rel_day,-best_pic_win)
+print(paste("The number of variables in the processed dataframe:",ncol(d2)))
+print("The names of the variables in the processed dataframe are:")
+names(d2)
+
+```
+* * *
+###__Third__, provide summary statistics for all numeric variables
+####Note that this code turns "ugly" summary printouts into one attractive table
+
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+
+    d2b<-select_if(d1,is.numeric)
+
+    bb<-summary(d2b$audience_score)
+    bg<-as.matrix(bb)
+    bg<-as.data.frame(bg)
+    Stats<-rownames(bg)
+    bb<-cbind(Stats,bg)
+    c0<-tbl_df(bb)     
+    names(c0)=c("Stats","audience_score")
+
+    bb<-summary(d2b$imdb_rating)
+    bg<-as.matrix(bb)
+    bg<-as.data.frame(bg)
+    Stats<-rownames(bg)
+    bb<-cbind(Stats,bg)
+    c1<-tbl_df(bb)     
+    names(c1)=c("Stats","imdb_rating")
+    
+    
+    bb<-summary(d2b$critics_score)
+    bg<-as.matrix(bb)
+    bg<-as.data.frame(bg)
+    Stats<-rownames(bg)
+    bb<-cbind(Stats,bg)
+    c2<-tbl_df(bb)     
+    names(c2)=c("Stats","critics_score")
+    
+    bb<-summary(d2b$runtime)
+    bg<-as.matrix(bb)
+    bg<-as.data.frame(bg)
+    Stats<-rownames(bg)
+    bb<-cbind(Stats,bg)
+    c3<-tbl_df(bb)     
+    names(c3)=c("Stats","runtime")
+    
+
+    dd<-full_join(c1,c2,by="Stats")
+    dd<-full_join(dd,c3,by="Stats")
+    dd<-full_join(dd,c0,by="Stats")
+
+
+    
+        table2<-tableGrob(dd,rows = NULL)
+        title <- textGrob("Numeric Variable Summaries",gp=gpar(fontsize=20))
+        footnote <- textGrob("Summaries for each numeric variable in final database selected", x=0, hjust=0, gp=gpar(fontsize=12, fontface="italic"))
+
+        padding <- unit(0.5,"line")
+        table2 <- gtable_add_rows(table2, 
+                         heights = grobHeight(title) + padding,
+                         pos = 0)
+        table2 <- gtable_add_rows(table2, 
+                         heights = grobHeight(footnote)+ padding)
+        table2 <- gtable_add_grob(table2, list(title, footnote),
+                         t=c(1, nrow(table2)), l=c(1,2), 
+                         r=ncol(table2))
+        
+        grid.newpage()
+  grid.draw(table2)
+ 
+
+
+
+
+```
+* * *
+###__Fourth__, provide overview graphs of dataframe
+```{r,warning=FALSE,message=FALSE,tidy=TRUE}
+
+
+p1 <- ggplot(d1, aes(x=top200_box)) + 
+      geom_bar(fill="dark orange") + 
+      xlab("Is it in the top 200 films of all time") 
+p2 <- ggplot(d1, aes(x=title_type)) + 
+      geom_bar(fill="light blue") + 
+      xlab("Movie Type") 
+p3 <- ggplot(d1, aes(x=mpaa_rating)) + 
+      geom_bar(fill="magenta") + 
+      xlab("Movie Rating")
+p4 <- ggplot(d1, aes(x=runtime)) + 
+      geom_histogram(binwidth=20, fill="green") +
+      xlab("Movie Runtime in minutes")
+grid.arrange(p1, p2, p3, p4, nrow=2,
+             top="Movie Stats")
+
+```
+
+
+
+* * *
+* * *
+* * *
+
+## Part 4: Modeling
+
+### The **_"Popularity"_** variable is determined by "audience_score" (audience_rating is less accurate) and imdb_rating.   A new variable name **_"Popularity"_** was created and used as the _**"Response Variable"**_.  The _**"Popularity"**_ variable combines _audience_score_ (possible values 0-100) plus 10*_imdb_rating_ (times 10 since possible values for _imdb_rating_ are only 0-10).
+
+
+```{r,warning=FALSE,message=FALSE}
+
+d3<-mutate(d2,popularity=(audience_score+(imdb_rating*10)))
+d3<-select(d3,popularity,everything())
+d4<-select(d3,-audience_score,-imdb_rating)
+print("The predictor variable names of the database used in developing the model are:")
+names(d4[3:10])
+summary(d4$popularity)
+```
+
+####Note that the following graph shows a relatively uniform distribution for the response variable which is important for non biased models.
+
+```{r,warning=FALSE,message=FALSE}
+p3 <- ggplot(d4, aes(x=popularity)) + 
+      geom_histogram(binwidth=5, fill="blue") +
+      xlab("Popularity Variable")
+
+
+```
+
+* * *
+###A linear regression model is made using all the variables
+```{r,warning=FALSE,message=FALSE}
+allvar<-lm(popularity~title_type+genre+runtime+mpaa_rating+
+        best_actor_win+best_actress_win+best_dir_win+thtr_rel_month,d4)
+summary(allvar)
+anova(allvar)
+
+```
+* * *
+###Remove variables with high (over .05) p-Values one at a time, starting with the highest.  Rerun anova after each removal and repeat until all variables with p-Values over .05 are gone.
+```{r,warning=FALSE,message=FALSE,echo=FALSE}
+#remove thtr_rel_month from full model first
+mod1<-lm(popularity~title_type+genre+runtime+mpaa_rating+
+        best_actor_win+best_actress_win+best_dir_win,d4)
+anova(mod1)
+
+#remove best_actor_win next
+mod2<-lm(popularity~title_type+genre+runtime+mpaa_rating+best_actress_win+best_dir_win,d4)
+anova(mod2)
+
+#remove best_actress_win next
+mod3<-lm(popularity~title_type+genre+runtime+mpaa_rating+best_dir_win,d4)
+anova(mod3)
+
+#no more high P-Values;  therefore the final model is mod3
+names(d4)
+d5<-select(d4,-best_actress_win,-best_actor_win,-thtr_rel_month)
+names(d5[3:7])#predictor variable names for final model
+
+finalmod<-mod3
+
+```
+* * *
+###Verify that the final model is credible
+####No significant correlation between the variables was found
+####The residuals are _**distributed around 0**_ - from the Residual Distribution Plot
+####**_Nearly normal residuals_**: By looking at the histogram and Q-Q plot
+####From Residuals Distribution Plot - Residuals have _**constant variability**_.
+```{r,warning=FALSE,message=FALSE}
+
+#ggpairs(d5[3:4],columns = 1:2)
+
+
+p1 <- ggplot(finalmod, aes(y=finalmod$residuals,x=finalmod$fitted.values)) + 
+      geom_point(color="dark green",size=1,alpha=.4) +
+      geom_hline(yintercept = 0, linetype = "dashed") +
+      xlab("Fitted values") +
+      ylab("Residuals")
+
+p2 <- ggplot(finalmod, aes(finalmod$residuals)) + 
+      geom_histogram(binwidth=8, fill="light green") +
+      xlab("Residuals") +
+      ggtitle("Residual Distribution")
+
+p3 <- ggplot(finalmod, aes(sample=finalmod$residuals)) +
+      stat_qq()  + xlab("Theoretical Quantiles")+ ylab("Residuals")
+      ggtitle("Q-Q Plot")
+
+      grid.arrange(p1, p2, p3, nrow=1, top="Diagnostic Plots")
+
+```
+
+
+* * *
+* * *
+
+## Part 5: Prediction
+* * *
+###Apply finalmodel to predict popularity of two films released in 2017: _**The Greatest Showman**_ and _**Spider-Man: Homecoming**_
+
+```{r,warning=FALSE,message=FALSE}
+
+
+
+
+
+```
+
+
+
+* * *
+* * *
+* * *
+
+## Part 6: Conclusion

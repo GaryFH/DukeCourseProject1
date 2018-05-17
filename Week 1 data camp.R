@@ -60,7 +60,7 @@ arrange(present,total)
 
 #using nycflights  data
 
-data("nycflights")
+data(nycflights)
 nycflights
 
 
@@ -79,7 +79,9 @@ hist(df1$arr_delay)
 #boxplot(arr_delay~carrier,df1)?
 
 df11<-group_by(df1,carrier)
+summarise(df11,mean(arr_delay))
 summarise(df11,iqr=IQR(arr_delay))
+summarise(df11,mean(airr_time))
 
 
 

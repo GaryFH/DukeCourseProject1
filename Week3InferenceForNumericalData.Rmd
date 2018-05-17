@@ -124,7 +124,7 @@ false about the relationship between habit and weight?
 
 boxplot(weight~habit,nc)
 
-# We can compare the two groups using the by() function together with the summary() function.
+# We can compare the two groups (second group is factor or character) using the by() function together with the summary() function.
 by(nc$weight, nc$habit, summary)
 
 # We could be interested in the stardard deviations and the IQR's as well.
@@ -183,9 +183,9 @@ smoking and non-smoking mothers are different?
 Then, run the following:
 
 ```{r }
-inference(y = nc$weight, x = nc$habit, est = "mean", type = "ht",null = 0,alternative = "twosided", method = "theoretical")
+#inference(y = nc$weight, x = nc$habit,  est = "mean", type = "ht",null = 0, method = "theoretical", alternative = "twosided")
 
-
+inference(y = weight, x = habit, data = nc, statistic = "mean", type = "ht",null = 0, method = "theoretical", alternative = "twosided")
 
 
 

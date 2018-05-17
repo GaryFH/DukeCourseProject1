@@ -250,7 +250,7 @@ above the value. Remember that we create new variables using the `mutate` functi
 ci2<- ci %>%
   mutate(capture_mu=ifelse(lower<mean(ames$area)&upper>mean(ames$area),1,0))
 
-sum(ci2$capture_mu)
+sum(ci2$capture_mu)/1000
 
 ```
 
@@ -312,7 +312,7 @@ qnorm(.995)
 ```{r plot-99-perc-cis}
 cib<-ames %>%
   
-rep_sample_n(size=60,reps=1000,replace=T) %>%
+rep_sample_n(size=60,reps=100000,replace=T) %>%
   
 summarise(lower=mean(area)-qnorm(.995)*(sd(area)/sqrt(n)),upper=mean(area)+qnorm(.995)*(sd(area)/sqrt(n)))
 

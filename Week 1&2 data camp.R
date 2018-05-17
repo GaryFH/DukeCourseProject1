@@ -127,7 +127,7 @@ answer<-mean(df8F$arvontime)
 
 #kobe streak week3
 
-data("kobe_basket") #kobe_basket is tbldf 133 rows by 6 columns
+data(kobe_basket) #kobe_basket is tbldf 133 rows by 6 columns
  kobe_streak<-calc_streak(kobe_basket$shot)
 table(kobe_streak) 
 barplot(table(kobe_streak))
@@ -138,8 +138,8 @@ median(kobe_streak$length)
 ##The following creats a sample shooter
 
 shot_outcomes <- c("H", "M")
-sim_basket <- sample(shot_outcomes, size = 133, replace = TRUE)
-sim_basket <- sample(shot_outcomes, size = 133, replace = TRUE, 
+sim_basket <- sample(shot_outcomes, size = 100, replace = TRUE)
+sim_basket <- sample(shot_outcomes, size = 100, replace = TRUE, 
                      prob = c(0.45, 0.55))
 table(sim_basket)
 sim_streak<-calc_streak(sim_basket)
